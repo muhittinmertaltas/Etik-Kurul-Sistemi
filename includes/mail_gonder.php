@@ -18,8 +18,8 @@ function etikMailGonder($alici_mail, $konu, $mesaj, $dosya_yolu = null) {
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com'; 
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'muhittinmertaltas025@gmail.com'; // Kendi adresini yaz
-        $mail->Password   = 'vxdaiggkzivxvzpy'; // 16 haneli uygulama şifreni yaz
+        $mail->Username   = 'GIZLI_HESAP'; // Kendi adresini yaz
+        $mail->Password   = 'GIZLI_SIFRE'; // 16 haneli uygulama şifreni yaz
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
         $mail->CharSet    = 'UTF-8';
