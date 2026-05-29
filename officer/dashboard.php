@@ -54,40 +54,19 @@ try {
 
 // 2. KURUL ÜYELERİNİ UNVAN HİYERARŞİSİNE GÖRE ÇEK (RLS PROTOKOLÜNÜ AŞAN SAF SORGULAR)
 try {
-    // Arama yolunu belek_research_ethics ve public olarak sabitliyoruz
     $conn->exec("SET search_path TO belek_research_ethics, public");
 
-    // 🚀 RLS GİZLEME ENGELİNİ KIRAN SAF VERİ MOTORU 🚀
-    // users tablosundaki RLS kuralları SELECT atarken oturum sahibine göre filtreleme yapar.
-    // Ancak UNION yapısıyla hem committee_members tablosunu zorluyoruz hem de users'taki yetkilileri harmanlıyoruz.
+    // SADECE committee_members tablosuna odaklanan saf sorgu:
     $uyeler_sorgu = $conn->query("
-        SELECT id, member_name, member_email, member_role 
+        SELECT id, name AS member_name, email AS member_email, title AS member_role 
         FROM belek_research_ethics.committee_members
-        WHERE member_name IS NOT NULL
-        UNION
-        SELECT id, CONCAT(first_name, ' ', last_name) as member_name, email as member_email, user_type as member_role 
-        FROM public.users 
-        WHERE user_type IN ('Officer', 'Admin') AND username != 'belek09'
-        ORDER BY 
-        CASE 
-            WHEN member_role = 'Etik Kurul Başkanı' OR member_role = 'Admin' THEN 1
-            WHEN member_role = 'Etik Kurul Başkan Yardımcısı' OR member_role = 'Officer' THEN 2
-            ELSE 3
-        END ASC, id ASC
+        WHERE name IS NOT NULL
+        ORDER BY id ASC
     ");
-    $uyeler = $uyeler_sorgu->fetchAll();
+    $uyeler = $uyeler_sorgu->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    // Eğer RLS katı bir engel çıkarırsa jüride listenin boş kalmaması için akıllı yedek simülasyon mekanizması:
-    error_log("RLS Süzme Hatası: " . $e->getMessage());
-    $uyeler = [
-        [
-            'id' => 999,
-            'member_name' => 'Muhittin Mert 2',
-            'member_email' => 'muhittinmert2@belekuni.com',
-            'member_role' => 'Etik Kurul Üyesi'
-        ]
-    ];
+    die("Veritabanı Sorgu Hatası: " . $e->getMessage());
 }
 
 // Yeni üye eklendiyse listeye hibrit enjekte ediyoruz
