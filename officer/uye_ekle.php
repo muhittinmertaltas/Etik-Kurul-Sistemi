@@ -16,59 +16,25 @@ $mesaj = "";
 $mesaj_turu = "";
 
 // Form Post Edildiğinde (Butona Basıldığında)
+// Form Post Edildiğinde (Butona Basıldığında)
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = trim($_POST['member_name'] ?? '');
-    $email = trim($_POST['member_email'] ?? '');
+    $name = trim($_POST['name'] ?? '');  // member_name yerine name
+    $email = trim($_POST['email'] ?? ''); // member_email yerine email
+    $title = 'Üye'; // Varsayılan olarak Üye atıyoruz
 
     if (!empty($name) && !empty($email)) {
         try {
+            // Şemayı belirt ve veritabanına ekle
             $conn->exec("SET search_path TO belek_research_ethics, public");
-            $random_id = rand(1000, 9999);
-
-            // 🚀 1. DENEME: Kürşat'ın tablosu düz name ve email kolonlarından oluşuyorsa (member_role YOK!)
-            $stmt = $conn->prepare("
-                INSERT INTO committee_members (id, name, email) 
-                VALUES (?, ?, ?)
-            ");
-            $sonuc = $stmt->execute([$random_id, $name, $email]);
+            $stmt = $conn->prepare("INSERT INTO committee_members (name, email, title) VALUES (?, ?, ?)");
+            $sonuc = $stmt->execute([$name, $email, $title]);
 
             if ($sonuc) {
-                $_SESSION['last_added_member'] = [
-                    'id' => $random_id,
-                    'member_name' => $name,
-                    'member_email' => $email
-                ];
-                echo "<script>alert('Yeni Kurul Üyesi Veritabanına Kalıcı Olarak Kaydedildi!'); window.location='dashboard.php';</script>";
+                echo "<script>alert('Yeni üye başarıyla kaydedildi!'); window.location='dashboard.php';</script>";
                 exit();
             }
         } catch (PDOException $e) {
-            // 🚀 2. DENEME (FALLBACK): Eğer kolon adları member_name ve member_email ise devreye girer
-            try {
-                $stmt2 = $conn->prepare("
-                    INSERT INTO committee_members (id, member_name, member_email) 
-                    VALUES (?, ?, ?)
-                ");
-                $sonuc2 = $stmt2->execute([$random_id, $name, $email]);
-                
-                if ($sonuc2) {
-                    $_SESSION['last_added_member'] = [
-                        'id' => $random_id,
-                        'member_name' => $name,
-                        'member_email' => $email
-                    ];
-                    echo "<script>alert('Yeni Kurul Üyesi Tabloya Kalıcı Olarak Yazıldı!'); window.location='dashboard.php';</script>";
-                    exit();
-                }
-            } catch (PDOException $ex) {
-                // Eğer her iki yapı da patlarsa jürinin önünde beyaz ekran kalmasın diye session ile kurtarma kalkanı
-                $_SESSION['last_added_member'] = [
-                    'id' => $random_id,
-                    'member_name' => $name,
-                    'member_email' => $email
-                ];
-                echo "<script>alert('Yeni Kurul Üyesi Başarıyla Tanımlandı! (Simülasyon Aktif)'); window.location='dashboard.php';</script>";
-                exit();
-            }
+            die("Veritabanı Kayıt Hatası: " . $e->getMessage());
         }
     } else {
         $mesaj = "Lütfen tüm alanları eksiksiz doldurunuz!";
@@ -116,23 +82,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <form action="" method="POST">
                         
                         <!-- 1. İsim Alanı -->
-                        <div class="mb-3">
-                            <label for="member_name" class="form-label fw-bold text-secondary">Kurul Üyesi Adı Soyadı</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white"><i class="bi bi-person text-muted"></i></span>
-                                <input type="text" class="form-control form-control-lg" id="member_name" name="member_name" placeholder="Örn: Ali Şimşek" required>
-                            </div>
-                        </div>
+<div class="mb-3">
+    <label for="member_name" class="form-label fw-bold text-secondary">Kurul Üyesi Adı Soyadı</label>
+    <div class="input-group">
+        <span class="input-group-text bg-white"><i class="bi bi-person text-muted"></i></span>
+        <!-- BURAYA DİKKAT: name="name" olarak güncelledik -->
+        <input type="text" class="form-control form-control-lg" id="member_name" name="name" placeholder="Örn: Ali Şimşek" required>
+    </div>
+</div>
 
-                        <!-- 2. E-Posta Alanı -->
-                        <div class="mb-4">
-                            <label for="member_email" class="form-label fw-bold text-secondary">E-Posta Adresi (Canlı SMTP)</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white"><i class="bi bi-envelope text-muted"></i></span>
-                                <input type="email" class="form-control form-control-lg" id="member_email" name="member_email" placeholder="alisimsek07@gmail.com" required>
-                            </div>
-                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">BI Raporu dağıtımı ve başvuru inceleme mailleri bu adrese gönderilecektir.</small>
-                        </div>
+<!-- 2. E-Posta Alanı -->
+<div class="mb-4">
+    <label for="member_email" class="form-label fw-bold text-secondary">E-Posta Adresi (Canlı SMTP)</label>
+    <div class="input-group">
+        <span class="input-group-text bg-white"><i class="bi bi-envelope text-muted"></i></span>
+        <!-- BURAYA DİKKAT: name="email" olarak güncelledik -->
+        <input type="email" class="form-control form-control-lg" id="member_email" name="email" placeholder="alisimsek07@gmail.com" required>
+    </div>
+    <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">BI Raporu dağıtımı ve başvuru inceleme mailleri bu adrese gönderilecektir.</small>
+</div>
 
                         <!-- İşlem Butonları -->
                         <div class="d-grid gap-2 pt-2">
