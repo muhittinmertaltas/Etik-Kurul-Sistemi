@@ -84,49 +84,29 @@ $alert_turu = "";
 
 if (isset($_GET['send_mail']) && $_GET['send_mail'] == 1) {
     try {
-        // Kurul Üyelerini Mükerrersiz Çekiyoruz (Gelişmiş Filtre)
-        $uyeler_query = $conn->query("SELECT * FROM belek_research_ethics.committee_members ORDER BY id ASC");
-        $db_uyeler = $uyeler_query->fetchAll();
+        // 🚀 GERÇEK VERİTABANI ÜYE LİSTESİ 🚀
+        try {
+            $stmt = $conn->prepare("SELECT name, email FROM belek_research_ethics.committee_members WHERE email IS NOT NULL");
+            $stmt->execute();
+            $kurul_listesi = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $ham_uyeler = [];
-        foreach ($db_uyeler as $u) {
-            $m_name = $u['member_name'] ?? $u['name'] ?? '';
-            $m_email = trim($u['member_email'] ?? $u['email'] ?? '');
-            if (!empty($m_email) && strpos($m_name, 'Muhittin Mert Altaş') === false) {
-                $ham_uyeler[] = ['name' => $m_name, 'email' => $m_email];
+            if (empty($kurul_listesi)) {
+                die("Hata: E-posta gönderilecek kayıtlı üye bulunamadı.");
             }
-        }
-        
-        // Muhittin Mert 2'yi listeye bağlıyoruz
-        if (isset($_SESSION['last_added_member'])) {
-            $ham_uyeler[] = [
-                'name' => $_SESSION['last_added_member']['member_name'] ?? 'Muhittin Mert 2',
-                'email' => trim($_SESSION['last_added_member']['member_email'] ?? 'jashinhidansama07@gmail.com')
-            ];
+        } catch (PDOException $e) {
+            die("Veritabanı hatası: " . $e->getMessage());
         }
 
-        // E-posta Adreslerini Benzersizleştiriyoruz (Çoklama Engeli)
-        $kurul_listesi = [];
-        $islenen_mailler = [];
-        foreach ($ham_uyeler as $hu) {
-            $m = strtolower($hu['email']);
-            if (!in_array($m, $islenen_mailler)) {
-                $kurul_listesi[] = $hu;
-                $islenen_mailler[] = $m;
-            }
-        }
-
-        if (empty($kurul_listesi)) {
-            $kurul_listesi[] = ['name' => 'Muhittin Mert 2', 'email' => 'jashinhidansama07@gmail.com'];
-        }
+        // PHPMailer Canlı Gönderim Protokolü
+        $mail = new PHPMailer(true);
 
         // PHPMailer Canlı Gönderim Protokolü
         $mail = new PHPMailer(true);
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'muhittinmertaltas025@gmail.com';   
-        $mail->Password   = 'vxda iggk zivx vzpy'; // 16 haneli Google Uygulama Şifren
+        $mail->Username   = 'gizlibilgidir';   
+        $mail->Password   = 'gizlibilgidir'; // 16 haneli Google Uygulama Şifren
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
         $mail->CharSet    = 'UTF-8';
