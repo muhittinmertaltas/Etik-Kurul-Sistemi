@@ -44,49 +44,18 @@ try {
         ];
     }
 
-    // 2. Kurul Üyelerini Çekiyoruz
-    $uyeler_query = $conn->query("SELECT * FROM committee_members ORDER BY id ASC");
-    $db_uyeler = $uyeler_query->fetchAll();
+    // 2. Kurul Üyelerini Çekiyoruz (SADECE GERÇEK VERİ)
+    try {
+        // Tablo adını ve sütunları pgAdmin'de teyit ettiğimiz şekilde adresliyoruz
+        $sorgu = $conn->prepare("SELECT name AS member_name, email AS member_email FROM belek_research_ethics.committee_members WHERE email IS NOT NULL");
+        $sorgu->execute();
+        $uyeler = $sorgu->fetchAll(PDO::FETCH_ASSOC);
 
-    $ham_uyeler = [];
-    foreach ($db_uyeler as $u) {
-        $m_name = $u['member_name'] ?? $u['name'] ?? $u['fullname'] ?? '';
-        $m_email = trim($u['member_email'] ?? $u['email'] ?? '');
-        
-        // Veritabanında mükerrer veya eski "Muhittin Mert Altaş" kaydı varsa listeye almıyoruz
-        if (!empty($m_email) && strpos($m_name, 'Muhittin Mert Altaş') === false) {
-            $ham_uyeler[] = [
-                'member_name' => $m_name,
-                'member_email' => $m_email
-            ];
+        if (empty($uyeler)) {
+            die("Hata: Kurul üyesi bulunamadı, e-posta gönderilemez.");
         }
-    }
-    
-    // --- 🎯 SADECE MUHİTTİN MERT 2'Yİ KİLİTLİYORUZ 🎯 ---
-    if (isset($_SESSION['last_added_member'])) {
-        array_unshift($ham_uyeler, [
-            'member_name' => $_SESSION['last_added_member']['member_name'] ?? $_SESSION['last_added_member']['name'] ?? 'Muhittin Mert 2',
-            'member_email' => trim($_SESSION['last_added_member']['member_email'] ?? $_SESSION['last_added_member']['email'] ?? 'jashinhidansama07@gmail.com')
-        ]);
-    }
-
-    if (empty($ham_uyeler)) {
-        $ham_uyeler[] = [
-            'member_name' => 'Muhittin Mert 2', 
-            'member_email' => 'jashinhidansama07@gmail.com'
-        ];
-    }
-
-    // 🚀 DÜZELTME KATMANI: E-POSTA ADRESLERİNİ BENZERSİZ HALE GETİRMEK (ÇOKLAMAYI ÖNLER) 🚀
-    $uyeler = [];
-    $islenen_mailler = [];
-
-    foreach ($ham_uyeler as $u) {
-        $email = strtolower($u['member_email']);
-        if (!in_array($email, $islenen_mailler)) {
-            $uyeler[] = $u;
-            $islenen_mailler[] = $email; // Bu mail adresini kilitledik, bir daha eklenemez!
-        }
+    } catch (PDOException $e) {
+        die("Veritabanı hatası: " . $e->getMessage());
     }
 
 } catch (PDOException $e) {
@@ -106,8 +75,8 @@ try {
     $mail->isSMTP();
     $mail->Host       = 'smtp.gmail.com';
     $mail->SMTPAuth   = true;
-    $mail->Username   = 'muhittinmertaltas025@gmail.com';   
-    $mail->Password   = 'vxda iggk zivx vzpy'; // 16 haneli uygulama şifren
+    $mail->Username   = 'gizlibilgidir';   
+    $mail->Password   = 'gizlibilgidir'; // 16 haneli uygulama şifren
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
     $mail->Port       = 587;
     $mail->CharSet    = 'UTF-8';
