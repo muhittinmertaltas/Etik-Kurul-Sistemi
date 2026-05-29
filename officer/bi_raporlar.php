@@ -1,5 +1,6 @@
 <?php
 session_start();
+date_default_timezone_set('Europe/Istanbul');
 ini_set('display_errors', 0); // Deprecated ve dönüşüm uyarılarını jüri önünde tamamen gizler
 require_once '../includes/db.php';
 
@@ -36,28 +37,29 @@ try {
     $db_tamamlananlar = (int)$s2->fetchColumn();
 } catch (PDOException $e) { $db_tamamlananlar = 0; }
 
-// 3. 📊 HİBRİT BI SAYAÇLARI MOTORU (Kabul / Ret / Revize Ayırıcı) 📊
-$hybrid_records = $_SESSION['hybrid_archive'] ?? [];
+// 3. 📊 GERÇEK ZAMANLI VERİTABANI RAPORLAMA MOTORU 📊
+$kabul_sayisi = 0; $revize_sayisi = 0; $ret_sayisi = 0;
 
-// Temel Başlangıç Değerleri (Sunumda tam senkronize 11-4-5 dökümü için taban korumalı)
-$kabul_sayisi = 11; 
-$revize_sayisi = 4;
-$ret_sayisi = 5;
+// Sadece veritabanından, güncel durumu çekiyoruz
+$db_sorgu = $conn->query("SELECT title, document_type FROM applications WHERE status = 'Tamamlandı'");
 
-// Tarayıcı hafızasındaki anlık jüri test kararlarını dinamik olarak saydırıyoruz
-if (!empty($hybrid_records)) {
-    $kabul_sayisi = 0; $revize_sayisi = 0; $ret_sayisi = 0;
-    foreach ($hybrid_records as $hr) {
-        $type = $hr['document_type'] ?? '';
-        if (strpos($type, 'Ret') !== false || strpos($type, 'Red') !== false) {
-            $ret_sayisi++;
-        } elseif (strpos($type, 'Düzeltme') !== false || strpos($type, 'Revize') !== false || strpos($type, 'Revizyon') !== false) {
-            $revize_sayisi++;
-        } else {
-            $kabul_sayisi++;
-        }
+while ($row = $db_sorgu->fetch()) {
+    $doc = $row['document_type'] ?? '';
+    $tit = $row['title'] ?? '';
+    
+    // completed.php ile birebir aynı filtreleme mantığı
+    if (strpos($doc, 'Ret') !== false || strpos($doc, 'Red') !== false || strpos($tit, 'Red Mektubu') !== false) {
+        $ret_sayisi++;
+    } elseif (strpos($doc, 'Düzeltme') !== false || strpos($doc, 'Revize') !== false || strpos($doc, 'Revizyon') !== false || strpos($tit, 'Revizyon Gerekli') !== false) {
+        $revize_sayisi++;
+    } else {
+        $kabul_sayisi++;
     }
 }
+
+// Genel Trafik Metrikleri (Veritabanındaki gerçek sonuçlar)
+$karara_baglananlar = $kabul_sayisi + $revize_sayisi + $ret_sayisi;
+$toplam_trafik = $incelemedekiler + $karara_baglananlar;
 
 // Toplam Karara Bağlananlar ve Genel Trafik Metrikleri
 $karara_baglananlar = $kabul_sayisi + $revize_sayisi + $ret_sayisi;
