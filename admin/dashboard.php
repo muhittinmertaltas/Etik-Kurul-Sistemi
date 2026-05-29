@@ -62,7 +62,18 @@ try {
     $revize_sayisi = $conn->query("SELECT COUNT(*) FROM applications WHERE status = 'Tamamlandı' AND (title ILIKE '%Revizyon%' OR title ILIKE '%Düzeltme%')")->fetchColumn();
     
     $toplam_karar = $kabul_sayisi + $red_sayisi + $revize_sayisi;
-    $ortalama_sure_metni = "2g 14s 22dk"; 
+    // --- MERKEZİ DİNAMİK SÜRE HESAPLAYICI ---
+$ortalama_sure_metni = "Hesaplanıyor...";
+try {
+    $s3 = $conn->query("SELECT AVG(result_date - application_date) FROM applications WHERE status = 'Tamamlandı'");
+    $avg_interval = $s3->fetchColumn();
+    if ($avg_interval) {
+        $ort_gun = 0; $ort_saat = 0; $ort_dakika = 0;
+        if (preg_match('/(\d+)\s+days?/', $avg_interval, $m)) { $ort_gun = (int)$m[1]; }
+        if (preg_match('/(\d+):(\d+):(\d+)/', $avg_interval, $tm)) { $ort_saat = (int)$tm[1]; $ort_dakika = (int)$tm[2]; }
+        $ortalama_sure_metni = ($ort_gun > 0 ? $ort_gun."g " : "") . $ort_saat."s ".$ort_dakika."dk";
+    }
+} catch (PDOException $e) { $ortalama_sure_metni = "Veri Hatası"; }
 } catch (PDOException $e) { 
     $yetkililer = []; $inceleme_sayisi = $kabul_sayisi = $red_sayisi = $revize_sayisi = $toplam_karar = 0;
 }
